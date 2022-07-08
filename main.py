@@ -5,6 +5,7 @@ import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 
+''' selenium 4.2.0 이하에서 '''
 
 def rename(f_path, f_name):
     """
