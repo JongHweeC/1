@@ -4,9 +4,9 @@ import time
 import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
+from selenium.webdriver.common.by import By
 
-''' selenium 4.2.0 이하에서 '''
-
+''' for Selenium 4.3.0 '''
 def rename(f_path, f_name):
     """
     가장 최근에 다운 받은 파일의 이름을 바꿔준다.
@@ -27,27 +27,30 @@ parameters = ['Average Temperature', 'Maximum Temperature', 'Minimum Temperature
 years = ['2017', '2018', '2019', '2020', '2021']
 months = ['March', 'April', 'May', 'June', 'July', 'August', 'September']
 time_scale = '1-Month'  # default
-address = 'C:\\Users\\aucur\\PycharmProjects\\pythonProject\\corn\\'
 
-# state마다 5*7*4회 시행, year마다 7*4회 시행, month마다 4회 시행
+''' ↓↓ 파일이 rename에 의해 새로 저장되는 위치 지정 필요 ↓↓ '''
+address = 'C:\\Users\\최종휘\\PycharmProjects\\pyProject1\\'
+
+# state마다 5*7회 시행, year마다 7회 시행, month마다 1회 시행
 st, ye, mo = 0, 0, 0 # 각각 state, year, month에 해당하는 index
-for n in range(1, 13*5*7*4+1):
-    s = Select(driver.find_element_by_id('region'))
+for n in range(1, 13*5*7+1):
+    s = Select(driver.find_element(By.ID, 'region'))
     s.select_by_visible_text(states[st])
-    y = Select(driver.find_element_by_id('year'))
+    y = Select(driver.find_element(By.ID, 'year'))
     y.select_by_visible_text(years[ye])
-    m = Select(driver.find_element_by_id('month'))
+    m = Select(driver.find_element(By.ID, 'month'))
     m.select_by_visible_text(months[mo])
     ''' state, year, month마다 각 parameter별로 csv파일 다운로드 후 합치기'''
     for i in range(0, 4):
         parameter = parameters[i]
-        p = Select(driver.find_element_by_id('parameter'))
+        p = Select(driver.find_element(By.ID, 'parameter'))
         p.select_by_visible_text(parameter)
-        driver.find_element_by_xpath('//*[@id="submit"]').click()  # plot
+        driver.find_element(By.XPATH, '//*[@id="submit"]').click()  # plot
         time.sleep(1)
-        driver.find_element_by_xpath('//*[@id="csv-download"]/img').click()  # download csv
+        driver.find_element(By.XPATH, '//*[@id="csv-download"]/img').click()  # download csv
         time.sleep(1)
-        rename(r"C:\Users\aucur\Downloads", 'part' + str(i))
+        ''' ↓↓ 파일이 최초에 다운로드 되는 위치 지정 ↓↓ '''
+        rename(r'C:\Users\최종휘\Downloads', 'part' + str(i))
         if i == 0:
             df_origin = pd.read_csv(address + 'part0', header=None, names=['A', 'B', 'C', 'D', 'E', 'F'])
         elif i == 1:
@@ -59,60 +62,24 @@ for n in range(1, 13*5*7*4+1):
         elif i == 3:
             df_other = pd.read_csv(address + 'part3', header=None, names=['A', 'B', 'C', 'D', 'E', 'F'])
             df_origin.F = df_other.C
-    # 4개 다 합친 후 특정 행열 값 변경
+    ''' ↓↓ 4개 다 합친 후 특정 행열 값 변경 '''
     df_origin.iloc[3, 2] = 'Average Temperature'
     df_origin.iloc[3, 3] = 'Maximum Temperature'
     df_origin.iloc[3, 4] = 'Minimum Temperature'
     df_origin.iloc[3, 5] = 'Precipitation'
-    '''data frame에서 csv 파일로 변경 '''
+    '''data frame 에서 csv 파일로 변경 '''
     df_origin.to_csv(path_or_buf=address + states[st] + '_' + years[ye] + '_' + months[mo] + '.csv', index=False,
                      header=False)
-    if n % (5*7*4) == 0:
+    # state마다 5*7회 시행, year마다 7회 시행, month마다 1회 시행
+    if n % (5*7) == 0:
         st += 1
-        ye += 1
-        mo += 1
-    elif n % (7*4) == 0:
-        ye += 1
-        mo += 1
-    elif n % 4 == 0:
+    if n % 7 == 0:
+        if ye == 4:
+            ye = 0
+        else:
+            ye += 1
+    if mo == 6:
+        mo = 0
+    else:
         mo += 1
 
-
-'''
-for state in states:
-    s = Select(driver.find_element_by_id('region'))
-    s.select_by_visible_text(state)
-    for year in years:
-        y = Select(driver.find_element_by_id('year'))
-        y.select_by_visible_text(year)
-        for month in months:
-            m = Select(driver.find_element_by_id('month'))
-            m.select_by_visible_text(month)
-            for i in range(0, 4):
-                parameter = parameters[i]
-                p = Select(driver.find_element_by_id('parameter'))
-                p.select_by_visible_text(parameter)
-                driver.find_element_by_xpath('//*[@id="submit"]').click()  # plot
-                time.sleep(1)
-                driver.find_element_by_xpath('//*[@id="csv-download"]/img').click()  # download csv
-                time.sleep(1)
-                rename("C:\\Users\\aucur\\Downloads", 'part' + str(i))
-                if i == 0:
-                    df_origin = pd.read_csv(address + 'part0', header=None, names=['A','B','C','D','E','F'])
-                elif i == 1:
-                    df_other = pd.read_csv(address + 'part1', header=None, names=['A','B','C','D','E','F'])
-                    df_origin.D = df_other.C
-                elif i == 2:
-                    df_other = pd.read_csv(address + 'part2', header=None, names=['A','B','C','D','E','F'])
-                    df_origin.E = df_other.C
-                elif i == 3:
-                    df_other = pd.read_csv(address + 'part3', header=None, names=['A','B','C','D','E','F'])
-                    df_origin.F = df_other.C
-
-            # 4개 다 합치고 마지막에 특정 행열 값 변경
-            df_origin.iloc[3, 2] = 'Average Temperature'
-            df_origin.iloc[3, 3] = 'Maximum Temperature'
-            df_origin.iloc[3, 4] = 'Minimum Temperature'
-            df_origin.iloc[3, 5] = 'Precipitation'
-            df_origin.to_csv(path_or_buf=address + str(state) + '_' + str(year) + '_' + str(month)+ '.csv', index=False, header=False)
-            '''
